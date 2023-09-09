@@ -58,10 +58,12 @@ function apkDownloadAndInstall(url) {
         ),
         (error, stdout, stderr) => {
           if (error) {
-            showNotification('安装失败', `执行的错误: ${error}`);
+            var lines = error.message.trim().split("\n");
+            var lastLine = lines[lines.length - 1];
+            showMsg(`安装失败:${lastLine}`, false, true);
             return;
           }
-          showNotification('安装完成', `${stdout}`);
+          showMsg(`安装完成:${stdout}`, false, true);
         }
       );
     })
@@ -134,24 +136,18 @@ let getCmd = (filePath, adb) => {
   return command;
 };
 
-let showMsg = (msg, noLog) => {
+let showMsg = (msg, noLog, needNotify) => {
   if (!noLog) {
     console.log(msg)
   }
   utools.setSubInput(({ text }) => {
     console.log(text)
   }, msg);
+  if (needNotify) {
+    showNotification(msg)
+  }
 }
 
-let showNotification = (title, content) => {
-  utools.showNotification({
-    title: title,
-    body: content,
-    // icon: '图标路径', // 可选
-
-    // 点击通知的回调函数
-    onclick: () => {
-      console.log('通知被点击了')
-    }
-  })
+let showNotification = (content) => {
+  utools.showNotification(content)
 }
