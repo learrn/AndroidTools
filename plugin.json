@@ -1,0 +1,24 @@
+{
+    "preload": "preload.js",
+    "logo": "logo.png",
+    "development": {
+        "main": ""
+    },
+    "pluginSetting": {
+        "single": true,
+        "height": 0
+    },
+    "features": [
+        {
+            "code": "apkInstall",
+            "explain": "线上apk安装",
+            "cmds": [
+                {
+                    "type": "regex",
+                    "label": "aok url匹配",
+                    "match": "/^http.*\\.apk$/"
+                }
+            ]
+        }
+    ]
+}
