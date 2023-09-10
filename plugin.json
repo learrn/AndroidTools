@@ -11,13 +11,25 @@
     "features": [
         {
             "code": "apkInstall",
-            "explain": "线上apk安装",
+            "explain": "apk安装",
             "cmds": [
-                "apk",
+                "apkt",
                 {
                     "type": "regex",
-                    "label": "apk url匹配",
+                    "label": "apk链接安装",
                     "match": "/^http.*\\.apk$/"
+                },
+                {
+                    "type": "img",
+                    "label": "apk二维码安装"
+                },
+                {
+                    "type": "files",
+                    "label": "apk文件安装",
+                    "fileType": "file",
+                    "match": "/.apk$/",
+                    "minLength": 1,
+                    "maxLength": 1
                 }
             ]
         }
