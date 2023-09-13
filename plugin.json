@@ -13,7 +13,6 @@
             "code": "apkInstall",
             "explain": "apk安装",
             "cmds": [
-                "apkt",
                 {
                     "type": "regex",
                     "label": "apk链接安装",
@@ -31,6 +30,15 @@
                     "minLength": 1,
                     "maxLength": 1
                 }
+            ]
+        },
+        {
+            "code": "apkPath",
+            "explain": "apk安装环境",
+            "cmds": [
+                "APK环境清除",
+                "ADB环境配置",
+                "APK下载路径"
             ]
         }
     ]
