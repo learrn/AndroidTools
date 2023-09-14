@@ -2,11 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const child_process = require("child_process");
 const https = require("https");
+const http = require("http");
+const util = require("util");
 const QRCode = require("qrcode-reader");
 
 let apkInfos = [];
-
-exports.apkEnter = async (action) => {
+let mCallbackSetList;
+exports.apkEnter = async (action, callbackSetList) => {
   const downloadRes = await downloadConfig();
   if (!downloadRes) {
     return;
@@ -16,6 +18,7 @@ exports.apkEnter = async (action) => {
   if (!adbRes) {
     return;
   }
+  mCallbackSetList = callbackSetList;
   if ((action.type = "files")) {
     console.log(typeof action.payload);
     if (typeof action.payload == "string") {
@@ -72,11 +75,25 @@ exports.getApkInfos = () => {
   return downloads;
 };
 
-function apkDownloadAndInstall(url) {
+async function apkDownloadAndInstall(url) {
   let apkUrl;
   if (url == "apkt") {
     apkUrl =
       "https://storage.jd.com/com.bamboo.android.product/490/13763356/JDMALLLITE-6.11.5-22710-tjDebugUseReleaseSign_64bit_resguard-202309081159_sec_signed.apk";
+    // runAdbCommand(
+    //   "shell getprop ro.product.model",
+    //   (res) => {
+    //     console.info(res);
+    //     window.showMsg(`安装完成:${res}`, false, true);
+    //   },
+    //   (error) => {
+    //     var lines = error.message.trim().split("\n");
+    //     var lastLine = lines[lines.length - 1];
+    //     window.showMsg(`安装失败:${lastLine}`, false, true);
+    //     return;
+    //   }
+    // );
+    // return;
   } else {
     apkUrl = url;
   }
@@ -93,18 +110,32 @@ function apkDownloadAndInstall(url) {
 }
 
 let apkInstall = (apkPath) => {
-  child_process.exec(
-    getCmd(apkPath, window.getDBItem("adbPath")),
-    (error, stdout, stderr) => {
-      if (error) {
-        var lines = error.message.trim().split("\n");
-        var lastLine = lines[lines.length - 1];
-        window.showMsg(`安装失败:${lastLine}`, false, true);
-        return;
-      }
-      window.showMsg(`安装完成:${stdout}`, false, true);
+  runAdbCommand(
+    `安装中`,
+    `install -t -d -r ${apkPath}`,
+    (res) => {
+      console.info(res);
+      window.showMsg(`安装完成:${res}`, false, true);
+    },
+    (error) => {
+      var lines = error.message.trim().split("\n");
+      var lastLine = lines[lines.length - 1];
+      window.showMsg(`安装失败:${lastLine}`, false, true);
+      return;
     }
   );
+  // child_process.exec(
+  //   getCmd(apkPath, window.getDBItem("adbPath")),
+  //   (error, stdout, stderr) => {
+  //     if (error) {
+  //       var lines = error.message.trim().split("\n");
+  //       var lastLine = lines[lines.length - 1];
+  //       window.showMsg(`安装失败:${lastLine}`, false, true);
+  //       return;
+  //     }
+  //     window.showMsg(`安装完成:${stdout}`, false, true);
+  //   }
+  // );
 };
 
 async function downloadConfig() {
@@ -155,19 +186,6 @@ async function adbConfig(ignoreDefault = false) {
     } else {
       return true;
     }
-
-    // const { stdout, stderr } = child_process.exec("adb");
-    // let path = null;
-    // console.log(`$stdout:${stdout}`);
-    // console.log(`stderr:${stderr}`);
-    // if (stdout) {
-    //   path = ["adb"];
-    // } else {
-    //   path = await window.showOpenDialog({
-    //     properties: ["openFile"],
-    //     title: "选择adb位置",
-    //   });
-    // }
   } else {
     return true;
   }
@@ -180,13 +198,21 @@ const downloadApk = async (url, savePath) => {
   const file = window.createWriteStream(savePath);
 
   const response = await new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      resolve(res);
-
-      res.on("error", (err) => {
-        reject(err);
+    if (url.startsWith("https")) {
+      https.get(url, (res) => {
+        resolve(res);
+        res.on("error", (err) => {
+          reject(err);
+        });
       });
-    });
+    } else {
+      http.get(url, (res) => {
+        resolve(res);
+        res.on("error", (err) => {
+          reject(err);
+        });
+      });
+    }
   });
 
   response.pipe(file);
@@ -207,7 +233,7 @@ const downloadApk = async (url, savePath) => {
 };
 
 let getCmd = (filePath, adb) => {
-  command = `${adb} install -r ${filePath}`;
+  command = `${adb} install -t -d -r ${filePath}`;
   console.log(command);
   return command;
 };
@@ -261,3 +287,57 @@ function runCommand(cmd) {
     });
   });
 }
+
+const exec = util.promisify(child_process.exec);
+exports.runAdbCommand = async (text, command, onSuccess, onError) => {
+  runAdbCommand(text, command, onSuccess, onError);
+};
+
+/**
+ * Runs an ADB command and handles the response based on the number of devices connected.
+ *
+ * @param {string} command - The ADB command to run.
+ * @param {function} onSuccess - The callback function to execute on success.
+ * @param {function} onError - The callback function to execute on error.
+ * @return {Promise} The promise that resolves with the output of the command.
+ */
+let runAdbCommand = async (text, command, onSuccess, onError) => {
+  try {
+    let output = [];
+    const adb = window.getDBItem("adbPath");
+    console.log(`start ${command} ${onSuccess}`);
+    if (command.indexOf("-s ") == -1) {
+      const { stdout } = await exec(`${adb} devices -l`);
+      output = stdout.split("\n"); // Split on new line
+      output = output.slice(1, output.length - 2); // Remove first line and last empty line
+    }
+
+    if (output.length > 1) {
+      // More than one device connected
+      deviceInfos = [];
+      for (let device of output) {
+        console.log(`Device: ${device}`);
+        deviceInfos.push({
+          description: device.split(" ")[0],
+          title: device.match(/model:(\S+)/)[1],
+          command,
+          text,
+          onSuccess,
+          onError,
+        });
+      }
+      mCallbackSetList(deviceInfos);
+      window.showMsg("请选择要运行的设备");
+      // return deviceInfos;
+    } else {
+      showMsg(text);
+      // Only one device connected
+      const { stdout } = await exec(`${adb} ${command}`);
+      console.log(stdout);
+      onSuccess(stdout);
+    }
+  } catch (error) {
+    console.error(`exec error: ${error}`);
+    onError(error);
+  }
+};
