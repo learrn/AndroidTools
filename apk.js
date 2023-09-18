@@ -6,6 +6,7 @@ const child_process = require("child_process");
 const { http, https } = require("follow-redirects");
 const util = require("util");
 const QRCode = require("qrcode-reader");
+const cancelToken = new AbortController();
 
 let apkInfos = [];
 let mCallbackSetList;
@@ -76,6 +77,12 @@ exports.getApkInfos = () => {
   return downloads;
 };
 
+exports.cancel = () => {
+  if (cancelToken) {
+    cancelToken.abort();
+    window.showMsg("取消下载", false, true);
+  }
+};
 async function apkDownloadAndInstall(url) {
   let apkUrl;
   if (url == "apkt") {
@@ -188,14 +195,14 @@ const downloadApk = async (url, savePath) => {
 
   const response = await new Promise((resolve, reject) => {
     if (url.startsWith("https")) {
-      https.get(url, (res) => {
+      https.get(url, { signal: cancelToken.signal }, (res) => {
         resolve(res);
         res.on("error", (err) => {
           reject(err);
         });
       });
     } else {
-      http.get(url, (res) => {
+      http.get(url, { signal: cancelToken.signal }, (res) => {
         resolve(res);
         res.on("error", (err) => {
           reject(err);

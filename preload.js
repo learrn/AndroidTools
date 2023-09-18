@@ -2,7 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const child_process = require("child_process");
 const https = require("https");
-const { apkEnter, apkPathEnter, runAdbCommand } = require("./apk");
+const { apkEnter, apkPathEnter, runAdbCommand, cancel } = require("./apk");
+
+utools.onPluginOut((processExit) => {
+  if (processExit) {
+    cancel(); 
+  } else {
+    console.log("插件应用隐藏后台");
+  }
+});
 
 let mCallbackSetList;
 window.exports = {
