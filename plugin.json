@@ -13,11 +13,10 @@
             "code": "apkInstall",
             "explain": "apk安装",
             "cmds": [
-                "apkt",
                 {
                     "type": "regex",
                     "label": "apk链接安装",
-                    "match": "/^http.*\\.apk$/"
+                    "match": "/^http.*/"
                 },
                 {
                     "type": "img",

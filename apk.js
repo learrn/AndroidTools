@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const child_process = require("child_process");
-const https = require("https");
-const http = require("http");
+// const https = require("https");
+// const http = require("http");
+const { http, https } = require("follow-redirects");
 const util = require("util");
 const QRCode = require("qrcode-reader");
 
@@ -124,18 +125,6 @@ let apkInstall = (apkPath) => {
       return;
     }
   );
-  // child_process.exec(
-  //   getCmd(apkPath, window.getDBItem("adbPath")),
-  //   (error, stdout, stderr) => {
-  //     if (error) {
-  //       var lines = error.message.trim().split("\n");
-  //       var lastLine = lines[lines.length - 1];
-  //       window.showMsg(`安装失败:${lastLine}`, false, true);
-  //       return;
-  //     }
-  //     window.showMsg(`安装完成:${stdout}`, false, true);
-  //   }
-  // );
 };
 
 async function downloadConfig() {
@@ -264,7 +253,7 @@ let scanImage = (imageBase64) => {
 
     let result = value.result;
     console.log(result);
-    const isApkUrl = /^http.*\.apk$/.test(result);
+    const isApkUrl = /^http.*/.test(result);
     if (isApkUrl) {
       apkDownloadAndInstall(result);
     } else {

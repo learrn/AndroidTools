@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "follow-redirects": "^1.15.2",
     "qrcode-reader": "^1.0.4"
   },
   "main": "preload.js",
