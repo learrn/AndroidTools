@@ -84,41 +84,85 @@ exports.cancel = () => {
   }
 };
 
-exports.adbCmdInput = (action) => {
-  runAdbCommand(
-    "输入中",
-    `shell input text ${action.payload}`,
-    (res) => {
-      console.info(res);
-      window.showMsg(`输入完成.`, false, true);
-    },
-    (error) => {
-      var lines = error.message.trim().split("\n");
-      var lastLine = lines[lines.length - 1];
-      window.showMsg(`输入失败.`, false, true);
-      return;
-    }
-  );
+exports.adbCmdInput = (action, callbackSetList) => {
+  mCallbackSetList = callbackSetList;
+  if (action.payload == "设备截图") {
+    runAdbCommand(
+      "截图获取中",
+      `shell screencap /sdcard/screen.png`,
+      (res) => {
+        const [stdout, deviceInfo] = res;
+        console.info(`er${stdout}`);
+        const savePath = path.join(
+          window.getDBItem("downloadPath"),
+          "设备截图.png"
+        );
+        runAdbCommand(
+          "截图获取中",
+          `pull /sdcard/screen.png ${savePath}`,
+          (res) => {
+            const [stdout, deviceInfo] = res;
+            console.info(stdout);
+            window.showMsg(`截图完成.`, false, true);
+            setTimeout(() => {
+              window.shellShowItemInFolder(savePath);
+              window.outPlugin();
+            }, 900);
+          },
+          (error) => {
+            const [errorInfo, deviceInfo] = error;
+            lastLine = "";
+            if (errorInfo && errorInfo.message) {
+              var lines = errorInfo.message.trim().split("\n");
+              var lastLine = lines[lines.length - 1];
+            }
+            window.showMsg(`截图失败 ${lastLine}`, false, true);
+            return;
+          },
+          deviceInfo
+        );
+      },
+      (error) => {
+        const [errorInfo, deviceInfo] = error;
+        lastLine = "";
+        if (errorInfo && errorInfo.message) {
+          var lines = errorInfo.message.trim().split("\n");
+          var lastLine = lines[lines.length - 1];
+        }
+        window.showMsg(`截图失败 ${lastLine}`, false, true);
+        return;
+      }
+    );
+  } else {
+    runAdbCommand(
+      "输入中",
+      `shell input text ${action.payload}`,
+      (res) => {
+        const [stdout, deviceInfo] = res;
+        console.info(stdout);
+        window.showMsg(`输入完成.`, false, true);
+      },
+      (error) => {
+        const [errorInfo, deviceInfo] = error;
+        lastLine = "";
+        if (
+          errorInfo &&
+          errorInfo.message &&
+          errorInfo.message.indexOf("INJECT_EVENTS") != -1
+        ) {
+          lastLine = "若是MIUI系统请检查是否开启了USB调试(安全模式)";
+        }
+        window.showMsg(`输入失败 ${lastLine}`, false, true);
+        return;
+      }
+    );
+  }
 };
 async function apkDownloadAndInstall(url) {
   let apkUrl;
   if (url == "apkt") {
     apkUrl =
       "https://storage.jd.com/com.bamboo.android.product/490/13763356/JDMALLLITE-6.11.5-22710-tjDebugUseReleaseSign_64bit_resguard-202309081159_sec_signed.apk";
-    // runAdbCommand(
-    //   "shell getprop ro.product.model",
-    //   (res) => {
-    //     console.info(res);
-    //     window.showMsg(`安装完成:${res}`, false, true);
-    //   },
-    //   (error) => {
-    //     var lines = error.message.trim().split("\n");
-    //     var lastLine = lines[lines.length - 1];
-    //     window.showMsg(`安装失败:${lastLine}`, false, true);
-    //     return;
-    //   }
-    // );
-    // return;
   } else {
     apkUrl = url;
   }
@@ -139,11 +183,13 @@ let apkInstall = (apkPath) => {
     `安装中`,
     `install -t -d -r ${apkPath}`,
     (res) => {
-      console.info(res);
-      window.showMsg(`安装完成:${res}`, false, true);
+      const [stdout, deviceInfo] = res;
+      console.info(stdout);
+      window.showMsg(`安装完成:${stdout}`, false, true);
     },
     (error) => {
-      var lines = error.message.trim().split("\n");
+      const [errorInfo, deviceInfo] = error;
+      var lines = errorInfo.message.trim().split("\n");
       var lastLine = lines[lines.length - 1];
       window.showMsg(`安装失败:${lastLine}`, false, true);
       return;
@@ -179,7 +225,7 @@ async function adbConfig(ignoreDefault = false) {
       if (ignoreDefault) {
         throw new Error();
       }
-      const { stdout, stderr } = await runCommand("adb");
+      const [stdout, stderr] = await runCommand("adb");
       // 处理成功的情况
       console.log(`存在adb参数:${stdout}`);
       path = ["adb"];
@@ -295,15 +341,21 @@ function runCommand(cmd) {
       if (error) {
         reject(error);
       } else {
-        resolve({ stdout, stderr });
+        resolve([stdout, stderr]);
       }
     });
   });
 }
 
 const exec = util.promisify(child_process.exec);
-exports.runAdbCommand = async (text, command, onSuccess, onError) => {
-  runAdbCommand(text, command, onSuccess, onError);
+exports.runAdbCommand = async (
+  text,
+  command,
+  onSuccess,
+  onError,
+  deviceInfo
+) => {
+  runAdbCommand(text, command, onSuccess, onError, deviceInfo);
 };
 
 /**
@@ -314,12 +366,17 @@ exports.runAdbCommand = async (text, command, onSuccess, onError) => {
  * @param {function} onError - The callback function to execute on error.
  * @return {Promise} The promise that resolves with the output of the command.
  */
-let runAdbCommand = async (text, command, onSuccess, onError) => {
+let runAdbCommand = async (text, command, onSuccess, onError, deviceInfo) => {
   try {
     let output = [];
     const adb = window.getDBItem("adbPath");
     console.log(`start ${command} ${onSuccess}`);
-    if (command.indexOf("-s ") == -1) {
+    // if (command.indexOf("-s ") == -1) {
+    //   const { stdout } = await exec(`${adb} devices -l`);
+    //   output = stdout.split("\n"); // Split on new line
+    //   output = output.slice(1, output.length - 2); // Remove first line and last empty line
+    // }
+    if (deviceInfo == null) {
       const { stdout } = await exec(`${adb} devices -l`);
       output = stdout.split("\n"); // Split on new line
       output = output.slice(1, output.length - 2); // Remove first line and last empty line
@@ -327,7 +384,7 @@ let runAdbCommand = async (text, command, onSuccess, onError) => {
 
     if (output.length > 1) {
       // More than one device connected
-      deviceInfos = [];
+      let deviceInfos = [];
       for (let device of output) {
         console.log(`Device: ${device}`);
         deviceInfos.push({
@@ -345,12 +402,18 @@ let runAdbCommand = async (text, command, onSuccess, onError) => {
     } else {
       showMsg(text);
       // Only one device connected
-      const { stdout } = await exec(`${adb} ${command}`);
+      let finalCommond = "";
+      if (deviceInfo != null) {
+        finalCommond = `${adb} -s ${deviceInfo} ${command}`;
+      } else {
+        finalCommond = `${adb} ${command}`;
+      }
+      const { stdout } = await exec(finalCommond);
       console.log(stdout);
-      onSuccess(stdout);
+      onSuccess([stdout, deviceInfo]);
     }
   } catch (error) {
     console.error(`exec error: ${error}`);
-    onError(error);
+    onError([error, deviceInfo]);
   }
 };

@@ -43,9 +43,10 @@ window.exports = {
         mCallbackSetList([]);
         runAdbCommand(
           itemData.text,
-          `-s ${itemData.description} ${itemData.command}`,
+          itemData.command,
           itemData.onSuccess,
-          itemData.onError
+          itemData.onError,
+          itemData.description
         );
         // window.utools.hideMainWindow();
         // window.utools.show();
@@ -70,11 +71,25 @@ window.exports = {
   },
   adbTool: {
     // 注意：键对应的是 plugin.json 中的 features.code
-    mode: "none", // 用于无需 UI 显示，执行一些简单的代码
+    mode: "list",
     args: {
-      enter: async (action) => {
+      enter: async (action, callbackSetList) => {
         console.log(action);
-        adbCmdInput(action);
+        mCallbackSetList = callbackSetList;
+        adbCmdInput(action, callbackSetList);
+      },
+      select: (action, itemData) => {
+        console.log(`select ${itemData}`);
+        mCallbackSetList([]);
+        runAdbCommand(
+          itemData.text,
+          itemData.command,
+          itemData.onSuccess,
+          itemData.onError,
+          itemData.description
+        );
+        // window.utools.hideMainWindow();
+        // window.utools.show();
       },
     },
   },
@@ -122,4 +137,12 @@ window.getUtoolPath = (path) => {
 
 window.createWriteStream = (savePath) => {
   return fs.createWriteStream(savePath);
+};
+
+window.shellShowItemInFolder = (path) => {
+  utools.shellShowItemInFolder(`${path}`);
+};
+
+window.outPlugin = (path) => {
+  utools.outPlugin();
 };

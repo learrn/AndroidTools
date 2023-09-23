@@ -45,6 +45,7 @@
             "code": "adbTool",
             "explain": "常用adb命令",
             "cmds": [
+                "设备截图",
                 {
                     "type": "over",
                     "label": "adb input输入"
