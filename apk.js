@@ -83,6 +83,23 @@ exports.cancel = () => {
     window.showMsg("取消下载", false, true);
   }
 };
+
+exports.adbCmdInput = (action) => {
+  runAdbCommand(
+    "输入中",
+    `shell input text ${action.payload}`,
+    (res) => {
+      console.info(res);
+      window.showMsg(`输入完成.`, false, true);
+    },
+    (error) => {
+      var lines = error.message.trim().split("\n");
+      var lastLine = lines[lines.length - 1];
+      window.showMsg(`输入失败.`, false, true);
+      return;
+    }
+  );
+};
 async function apkDownloadAndInstall(url) {
   let apkUrl;
   if (url == "apkt") {

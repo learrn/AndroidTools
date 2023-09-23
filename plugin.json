@@ -40,6 +40,16 @@
                 "ADB环境配置",
                 "APK下载路径"
             ]
+        },
+        {
+            "code": "adbTool",
+            "explain": "常用adb命令",
+            "cmds": [
+                {
+                    "type": "over",
+                    "label": "adb input输入"
+                }
+            ]
         }
     ]
 }

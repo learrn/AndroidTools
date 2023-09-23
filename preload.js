@@ -2,11 +2,17 @@ const fs = require("fs");
 const path = require("path");
 const child_process = require("child_process");
 const https = require("https");
-const { apkEnter, apkPathEnter, runAdbCommand, cancel } = require("./apk");
+const {
+  apkEnter,
+  apkPathEnter,
+  runAdbCommand,
+  cancel,
+  adbCmdInput,
+} = require("./apk");
 
 utools.onPluginOut((processExit) => {
   if (processExit) {
-    cancel(); 
+    cancel();
   } else {
     console.log("插件应用隐藏后台");
   }
@@ -59,6 +65,16 @@ window.exports = {
         }
         // console.log('运行成功')
         // alert('运行成功')
+      },
+    },
+  },
+  adbTool: {
+    // 注意：键对应的是 plugin.json 中的 features.code
+    mode: "none", // 用于无需 UI 显示，执行一些简单的代码
+    args: {
+      enter: async (action) => {
+        console.log(action);
+        adbCmdInput(action);
       },
     },
   },
