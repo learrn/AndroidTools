@@ -28,11 +28,7 @@ window.exports = {
         console.log(action);
         mCallbackSetList = callbackSetList;
         try {
-          if (action.code == "apkInstall") {
-            apkEnter(action, callbackSetList);
-          } else if (action.code == "apkPath") {
-            apkPathEnter(action);
-          }
+          apkEnter(action, callbackSetList);
         } catch (e) {
           console.error(e);
         }

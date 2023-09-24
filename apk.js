@@ -11,6 +11,8 @@ const cancelToken = new AbortController();
 let apkInfos = [];
 let mCallbackSetList;
 exports.apkEnter = async (action, callbackSetList) => {
+  console.warn("apkEnter");
+  console.warn(action);
   const downloadRes = await downloadConfig();
   if (!downloadRes) {
     return;
@@ -21,7 +23,7 @@ exports.apkEnter = async (action, callbackSetList) => {
     return;
   }
   mCallbackSetList = callbackSetList;
-  if ((action.type = "files")) {
+  if (action.type == "files") {
     console.log(typeof action.payload);
     if (typeof action.payload == "string") {
       if (action.payload.startsWith("data:image")) {
@@ -36,10 +38,10 @@ exports.apkEnter = async (action, callbackSetList) => {
       window.showMsg(`安装APK ${action.payload[0]}`);
       apkInstall(action.payload[0].path);
     }
-  } else if ((action.type = "img")) {
+  } else if (action.type == "img") {
     window.showMsg("解析二维码");
     scanImage(action.payload);
-  } else if ((action.type = "regex")) {
+  } else if (action.type == "regex") {
     window.showMsg("下载并安装apk链接");
     apkDownloadAndInstall(action.payload);
   }
@@ -99,7 +101,7 @@ exports.adbCmdInput = (action, callbackSetList) => {
         );
         runAdbCommand(
           "截图获取中",
-          `pull /sdcard/screen.png ${savePath}`,
+          `pull /sdcard/screen.png "${savePath}"`,
           (res) => {
             const [stdout, deviceInfo] = res;
             console.info(stdout);
@@ -136,7 +138,7 @@ exports.adbCmdInput = (action, callbackSetList) => {
   } else {
     runAdbCommand(
       "输入中",
-      `shell input text ${action.payload}`,
+      `shell input text "${action.payload}"`,
       (res) => {
         const [stdout, deviceInfo] = res;
         console.info(stdout);
@@ -181,7 +183,7 @@ async function apkDownloadAndInstall(url) {
 let apkInstall = (apkPath) => {
   runAdbCommand(
     `安装中`,
-    `install -t -d -r ${apkPath}`,
+    `install -t -d -r "${apkPath}"`,
     (res) => {
       const [stdout, deviceInfo] = res;
       console.info(stdout);
