@@ -8,6 +8,7 @@ const {
   runAdbCommand,
   cancel,
   adbCmdInput,
+  proxyPortConfig,
 } = require("./apk");
 
 utools.onPluginOut((processExit) => {
@@ -77,13 +78,17 @@ window.exports = {
       select: (action, itemData) => {
         console.log(`select ${itemData}`);
         mCallbackSetList([]);
-        runAdbCommand(
-          itemData.text,
-          itemData.command,
-          itemData.onSuccess,
-          itemData.onError,
-          itemData.description
-        );
+        if (itemData.type == "proxy") {
+          proxyPortConfig(itemData.text, itemData.onSuccess, itemData.onError);
+        } else {
+          runAdbCommand(
+            itemData.text,
+            itemData.command,
+            itemData.onSuccess,
+            itemData.onError,
+            itemData.description
+          );
+        }
         // window.utools.hideMainWindow();
         // window.utools.show();
       },

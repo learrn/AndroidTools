@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const child_process = require("child_process");
 // const https = require("https");
 // const http = require("http");
@@ -88,53 +89,16 @@ exports.cancel = () => {
 
 exports.adbCmdInput = (action, callbackSetList) => {
   mCallbackSetList = callbackSetList;
-  if (action.payload == "设备截图") {
-    runAdbCommand(
-      "截图获取中",
-      `shell screencap /sdcard/screen.png`,
-      (res) => {
-        const [stdout, deviceInfo] = res;
-        console.info(`er${stdout}`);
-        const savePath = path.join(
-          window.getDBItem("downloadPath"),
-          "设备截图.png"
-        );
-        runAdbCommand(
-          "截图获取中",
-          `pull /sdcard/screen.png "${savePath}"`,
-          (res) => {
-            const [stdout, deviceInfo] = res;
-            console.info(stdout);
-            window.showMsg(`截图完成.`, false, true);
-            setTimeout(() => {
-              window.shellShowItemInFolder(savePath);
-              window.outPlugin();
-            }, 900);
-          },
-          (error) => {
-            const [errorInfo, deviceInfo] = error;
-            lastLine = "";
-            if (errorInfo && errorInfo.message) {
-              var lines = errorInfo.message.trim().split("\n");
-              var lastLine = lines[lines.length - 1];
-            }
-            window.showMsg(`截图失败 ${lastLine}`, false, true);
-            return;
-          },
-          deviceInfo
-        );
-      },
-      (error) => {
-        const [errorInfo, deviceInfo] = error;
-        lastLine = "";
-        if (errorInfo && errorInfo.message) {
-          var lines = errorInfo.message.trim().split("\n");
-          var lastLine = lines[lines.length - 1];
-        }
-        window.showMsg(`截图失败 ${lastLine}`, false, true);
-        return;
-      }
-    );
+  if (action.payload == "APK代理端口设置") {
+    resetProxyPort();
+  } else if (action.payload == "设置代理") {
+    proxyPortConfig(null, (port) => {
+      setProxy(port);
+    });
+  } else if (action.payload == "清除代理") {
+    delProxy();
+  } else if (action.payload == "设备截图") {
+    screenshot();
   } else {
     runAdbCommand(
       "输入中",
@@ -392,6 +356,7 @@ let runAdbCommand = async (text, command, onSuccess, onError, deviceInfo) => {
         deviceInfos.push({
           description: device.split(" ")[0],
           title: device.match(/model:(\S+)/)[1],
+          type: "adb",
           command,
           text,
           onSuccess,
@@ -412,10 +377,189 @@ let runAdbCommand = async (text, command, onSuccess, onError, deviceInfo) => {
       }
       const { stdout } = await exec(finalCommond);
       console.log(stdout);
-      onSuccess([stdout, deviceInfo]);
+      onSuccess ? onSuccess([stdout, deviceInfo]) : null;
     }
   } catch (error) {
     console.error(`exec error: ${error}`);
-    onError([error, deviceInfo]);
+    onError ? onError([error, deviceInfo]) : "";
+  }
+};
+
+let screenshot = () => {
+  runAdbCommand(
+    "截图获取中",
+    `shell screencap /sdcard/screen.png`,
+    (res) => {
+      const [stdout, deviceInfo] = res;
+      console.info(`er${stdout}`);
+      const savePath = path.join(
+        window.getDBItem("downloadPath"),
+        "设备截图.png"
+      );
+      runAdbCommand(
+        "截图获取中",
+        `pull /sdcard/screen.png "${savePath}"`,
+        (res) => {
+          const [stdout, deviceInfo] = res;
+          console.info(stdout);
+          window.showMsg(`截图完成.`, false, true);
+          setTimeout(() => {
+            window.shellShowItemInFolder(savePath);
+            window.outPlugin();
+          }, 900);
+        },
+        (error) => {
+          const [errorInfo, deviceInfo] = error;
+          lastLine = "";
+          if (errorInfo && errorInfo.message) {
+            var lines = errorInfo.message.trim().split("\n");
+            var lastLine = lines[lines.length - 1];
+          }
+          window.showMsg(`截图失败 ${lastLine}`, false, true);
+          return;
+        },
+        deviceInfo
+      );
+    },
+    (error) => {
+      const [errorInfo, deviceInfo] = error;
+      lastLine = "";
+      if (errorInfo && errorInfo.message) {
+        var lines = errorInfo.message.trim().split("\n");
+        var lastLine = lines[lines.length - 1];
+      }
+      window.showMsg(`截图失败 ${lastLine}`, false, true);
+      return;
+    }
+  );
+};
+let resetProxyPort = () => {
+  window.setDBItem("proxyPort", null);
+  proxyPortConfig(
+    null,
+    (port) => {
+      window.showMsg(`设备代理端口:${port} 设置成功`, false, true);
+      window.outPlugin();
+    },
+    (error) => {
+      window.showMsg(`设备代理端口设置失败`, false, true);
+    }
+  );
+};
+let delProxy = () => {
+  runAdbCommand(
+    `清除代理中`,
+    `shell settings put global http_proxy :0`,
+    (res) => {
+      const [stdout, deviceInfo] = res;
+      runAdbCommand(
+        "清理代理中",
+        "shell settings delete global http_proxy",
+        null,
+        null,
+        deviceInfo
+      );
+      runAdbCommand(
+        "清理代理中",
+        "shell settings delete global global_http_proxy_host",
+        null,
+        null,
+        deviceInfo
+      );
+      runAdbCommand(
+        "清理代理中",
+        "shell settings delete global global_http_proxy_port",
+        (res) => {
+          window.showMsg(`清除代理成功`, false, true);
+          window.outPlugin();
+        },
+        (error) => {
+          const [errorInfo, deviceInfo] = error;
+          var lines = errorInfo.message.trim().split("\n");
+          var lastLine = lines[lines.length - 1];
+          window.showMsg(`清除代理失败:${lastLine}`, false, true);
+          return;
+        },
+        deviceInfo
+      );
+    },
+    (error) => {
+      const [errorInfo, deviceInfo] = error;
+      var lines = errorInfo.message.trim().split("\n");
+      var lastLine = lines[lines.length - 1];
+      window.showMsg(`清除代理失败:${lastLine}`, false, true);
+      return;
+    }
+  );
+};
+
+let setProxy = (port) => {
+  let interfaces = os.networkInterfaces();
+  let ip;
+  for (let interfaceName in interfaces) {
+    const interface = interfaces[interfaceName];
+    for (let i = 0; i < interface.length; i++) {
+      const address = interface[i];
+      if (address.family === "IPv4" && !address.internal) {
+        if (!address.address.startsWith(0)) {
+          ip = address.address;
+          console.warn(ip);
+          break;
+        }
+      }
+    }
+  }
+  if (ip) {
+    runAdbCommand(
+      `设置代理${ip}:${port}中`,
+      `shell settings put global http_proxy '${ip}:${port}'`,
+      (res) => {
+        const [stdout, deviceInfo] = res;
+        console.info(stdout);
+        window.showMsg(`设置代理成功,如要清除请输入"清除代理"`, false, true);
+        window.outPlugin();
+      },
+      (error) => {
+        const [errorInfo, deviceInfo] = error;
+        var lines = errorInfo.message.trim().split("\n");
+        var lastLine = lines[lines.length - 1];
+        window.showMsg(`设置代理失败:${lastLine}`, false, true);
+        return;
+      }
+    );
+  } else {
+    system.showMsg("获取ip失败", false, true);
+  }
+};
+exports.proxyPortConfig = async (port, onSuccess, onError) => {
+  proxyPortConfig(port, onSuccess, onError);
+};
+
+let proxyPortConfig = async (port, onSuccess, onError) => {
+  if (port) {
+    window.setDBItem("proxyPort", port);
+    onSuccess(port);
+    return;
+  }
+  if (window.getDBItem("proxyPort") == null) {
+    let proxy = null;
+
+    console.log(`不存在proxyPort参数`);
+    utools.setSubInput(({ text }) => {
+      console.warn(text);
+      proxy = text;
+      mCallbackSetList([
+        {
+          description: "设置后如需修改可输入:APK代理端口设置",
+          title: `设置端口:${text}`,
+          type: "proxy",
+          text,
+          onSuccess,
+          onError,
+        },
+      ]);
+    }, "请输入代理端口,如8899");
+  } else {
+    onSuccess(window.getDBItem("proxyPort"));
   }
 };

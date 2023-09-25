@@ -46,6 +46,9 @@
             "explain": "常用adb命令",
             "cmds": [
                 "设备截图",
+                "设置代理",
+                "清除代理",
+                "APK代理端口设置",
                 {
                     "type": "over",
                     "label": "adb input输入"
