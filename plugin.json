@@ -54,6 +54,15 @@
                     "label": "adb input输入"
                 }
             ]
+        },
+        {
+            "code": "mcpService",
+            "explain": "MCP service control",
+            "cmds": [
+                "start-mcp-service",
+                "stop-mcp-service",
+                "mcp-service-status"
+            ]
         }
     ]
 }

@@ -20,6 +20,77 @@ utools.onPluginOut((processExit) => {
 });
 
 let mCallbackSetList;
+let mcpProcess = null;
+
+const MCP_COMMANDS = {
+  START: "start-mcp-service",
+  STOP: "stop-mcp-service",
+  STATUS: "mcp-service-status",
+};
+
+const isMcpRunning = () => mcpProcess && !mcpProcess.killed && mcpProcess.exitCode === null;
+
+const startMcpService = () => {
+  if (isMcpRunning()) {
+    showNotification(`MCP service is already running. PID: ${mcpProcess.pid}`);
+    return;
+  }
+
+  const mcpServerPath = path.join(__dirname, "mcp-server.js");
+  mcpProcess = child_process.spawn(process.execPath, [mcpServerPath], {
+    cwd: __dirname,
+    windowsHide: true,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+  mcpProcess.on("error", (err) => {
+    showNotification(`Failed to start MCP service: ${err.message}`);
+  });
+
+  mcpProcess.on("exit", (code, signal) => {
+    const msg = code !== null ? `exit code ${code}` : `signal ${signal || "unknown"}`;
+    mcpProcess = null;
+    showNotification(`MCP service stopped (${msg})`);
+  });
+
+  showNotification(`MCP service started. PID: ${mcpProcess.pid}`);
+};
+
+const stopMcpService = () => {
+  if (!isMcpRunning()) {
+    showNotification("MCP service is not running");
+    mcpProcess = null;
+    return;
+  }
+  mcpProcess.kill();
+};
+
+const showMcpServiceStatus = () => {
+  if (isMcpRunning()) {
+    showNotification(`MCP service is running. PID: ${mcpProcess.pid}`);
+  } else {
+    showNotification("MCP service is not running");
+  }
+};
+
+const mcpServiceEnter = (action) => {
+  const cmd = action?.payload;
+  if (!cmd || cmd === MCP_COMMANDS.START) {
+    startMcpService();
+    return;
+  }
+  if (cmd === MCP_COMMANDS.STOP) {
+    stopMcpService();
+    return;
+  }
+  if (cmd === MCP_COMMANDS.STATUS) {
+    showMcpServiceStatus();
+    return;
+  }
+  startMcpService();
+};
+
+
 window.exports = {
   apkInstall: {
     // 注意：键对应的是 plugin.json 中的 features.code
@@ -91,6 +162,19 @@ window.exports = {
         }
         // window.utools.hideMainWindow();
         // window.utools.show();
+      },
+    },
+  },
+  mcpService: {
+    mode: "none",
+    args: {
+      enter: async (action) => {
+        try {
+          mcpServiceEnter(action);
+        } catch (e) {
+          console.error(e);
+          showNotification(`MCP service error: ${e.message}`);
+        }
       },
     },
   },
