@@ -20,6 +20,7 @@ utools.onPluginOut((processExit) => {
 });
 
 let mCallbackSetList;
+// Keep a single MCP child process per plugin lifecycle.
 let mcpProcess = null;
 
 const MCP_COMMANDS = {
@@ -73,6 +74,7 @@ const showMcpServiceStatus = () => {
   }
 };
 
+// Map uTools action payloads to MCP service operations.
 const mcpServiceEnter = (action) => {
   const cmd = action?.payload;
   if (!cmd || cmd === MCP_COMMANDS.START) {

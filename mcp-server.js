@@ -5,6 +5,7 @@ const SERVER_VERSION = "1.0.0";
 const DEFAULT_PROTOCOL_VERSION = "2024-11-05";
 const adbPath = process.env.ADB_PATH || "adb";
 
+// MCP tool registry exposed to clients via tools/list.
 const tools = [
   {
     name: "adb_devices",
@@ -94,6 +95,7 @@ const tools = [
   },
 ];
 
+// JSON-RPC method handlers for MCP stdio protocol.
 const handlers = {
   initialize: async (params) => {
     const protocolVersion = params?.protocolVersion || DEFAULT_PROTOCOL_VERSION;
@@ -211,6 +213,7 @@ function requireNumber(val, name) {
   }
 }
 
+// Execute adb with a bounded output buffer and normalized UTF-8 output.
 function runAdb(args) {
   return new Promise((resolve, reject) => {
     execFile(adbPath, args, { windowsHide: true, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
@@ -246,6 +249,7 @@ function sendError(id, code, message) {
   writeMessage({ jsonrpc: "2.0", id, error: { code, message } });
 }
 
+// Minimal stdio framing parser for "Content-Length" based JSON-RPC messages.
 let buffer = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", async (chunk) => {
