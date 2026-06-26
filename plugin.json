@@ -63,6 +63,35 @@
                 "stop-mcp-service",
                 "mcp-service-status"
             ]
+        },
+        {
+            "code": "adbLaunch",
+            "explain": "adb启动与命令管理",
+            "cmds": [
+                "adb启动",
+                "adb命令",
+                "ADB启动",
+                {
+                    "type": "regex",
+                    "label": "adb启动(am start)",
+                    "match": "/^adb shell am start .*/i"
+                },
+                {
+                    "type": "regex",
+                    "label": "adb启动(am start)",
+                    "match": "/^shell am start .*/i"
+                },
+                {
+                    "type": "regex",
+                    "label": "adb启动(am start)",
+                    "match": "/^am start .*/i"
+                },
+                {
+                    "type": "regex",
+                    "label": "adb启动(am start)",
+                    "match": "/^http.*/i"
+                }
+            ]
         }
     ]
 }

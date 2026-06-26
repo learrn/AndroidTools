@@ -9,6 +9,9 @@ const {
   cancel,
   adbCmdInput,
   proxyPortConfig,
+  adbLaunchEnter,
+  adbLaunchSearch,
+  adbLaunchSelect,
 } = require("./apk");
 
 utools.onPluginOut((processExit) => {
@@ -176,6 +179,35 @@ window.exports = {
         } catch (e) {
           console.error(e);
           showNotification(`MCP service error: ${e.message}`);
+        }
+      },
+    },
+  },
+  adbLaunch: {
+    mode: "list",
+    args: {
+      enter: async (action, callbackSetList) => {
+        console.log(action);
+        mCallbackSetList = callbackSetList;
+        try {
+          adbLaunchEnter(action, callbackSetList);
+        } catch (e) {
+          console.error(e);
+        }
+      },
+      search: async (action, searchWord, callbackSetList) => {
+        try {
+          adbLaunchSearch(action, searchWord, callbackSetList);
+        } catch (e) {
+          console.error(e);
+        }
+      },
+      select: (action, itemData) => {
+        mCallbackSetList([]);
+        try {
+          adbLaunchSelect(action, itemData);
+        } catch (e) {
+          console.error(e);
         }
       },
     },

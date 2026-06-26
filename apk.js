@@ -563,3 +563,298 @@ let proxyPortConfig = async (port, onSuccess, onError) => {
     onSuccess(window.getDBItem("proxyPort"));
   }
 };
+
+const DB_FAVORITES_KEY = "adb_launch_favorites";
+const DB_HISTORY_KEY = "adb_launch_history";
+let mLaunchMode = "normal";
+
+function getFavorites() {
+  const data = window.getDBItem(DB_FAVORITES_KEY);
+  return Array.isArray(data) ? data : [];
+}
+
+function saveFavorites(list) {
+  window.setDBItem(DB_FAVORITES_KEY, list);
+}
+
+function getHistory() {
+  const data = window.getDBItem(DB_HISTORY_KEY);
+  return Array.isArray(data) ? data : [];
+}
+
+function saveHistory(list) {
+  window.setDBItem(DB_HISTORY_KEY, list);
+}
+
+function addHistoryItem(cmd) {
+  let history = getHistory();
+  history = history.filter(item => item !== cmd);
+  history.unshift(cmd);
+  if (history.length > 20) {
+    history = history.slice(0, 20);
+  }
+  saveHistory(history);
+}
+
+function addFavoriteItem(cmd) {
+  let favorites = getFavorites();
+  if (!favorites.includes(cmd)) {
+    favorites.push(cmd);
+    saveFavorites(favorites);
+  }
+}
+
+const renderAdbLaunchList = (searchWord, callbackSetList) => {
+  if (mLaunchMode === "manage") {
+    const favorites = getFavorites();
+    const history = getHistory();
+    const list = [];
+
+    // 1. Show existing favorites to let user unfavorite them
+    favorites.forEach(cmd => {
+      list.push({
+        title: `❌ 取消收藏：adb ${cmd}`,
+        description: "点击从收藏列表中移除此命令",
+        type: "unfavorite",
+        command: cmd
+      });
+    });
+
+    // 2. Show history items not in favorites to let user favorite them
+    history.forEach(cmd => {
+      if (!favorites.includes(cmd)) {
+        list.push({
+          title: `⭐ 收藏历史：adb ${cmd}`,
+          description: "点击将此历史命令加入收藏列表",
+          type: "favorite_history",
+          command: cmd
+        });
+      }
+    });
+
+    list.push({
+      title: "⬅️ 返回主菜单",
+      description: "返回历史与收藏列表",
+      type: "back"
+    });
+    callbackSetList(list);
+    return;
+  }
+
+  const favorites = getFavorites();
+  const history = getHistory();
+
+  if (searchWord && searchWord.trim()) {
+    const word = searchWord.trim();
+    let cleanCmd = word;
+    if (cleanCmd.toLowerCase().startsWith("adb ")) {
+      cleanCmd = cleanCmd.substring(4).trim();
+    }
+
+    const list = [
+      {
+        title: `⚡ 运行: adb ${cleanCmd}`,
+        description: "运行此命令并记入历史",
+        type: "run_custom",
+        command: cleanCmd
+      },
+      {
+        title: `⭐ 收藏并运行: adb ${cleanCmd}`,
+        description: "收藏并运行此命令",
+        type: "favorite_run_custom",
+        command: cleanCmd
+      }
+    ];
+
+    const wordLower = cleanCmd.toLowerCase();
+    const matchedFavorites = favorites.filter(cmd => cmd.toLowerCase().includes(wordLower) && cmd.toLowerCase() !== wordLower);
+    const matchedHistory = history.filter(cmd => cmd.toLowerCase().includes(wordLower) && cmd.toLowerCase() !== wordLower && !favorites.map(f => f.toLowerCase()).includes(cmd.toLowerCase()));
+
+    matchedFavorites.forEach(cmd => {
+      list.push({
+        title: `★ adb ${cmd}`,
+        description: "⭐ 收藏的命令 - 点击直接运行",
+        type: "run_saved",
+        command: cmd
+      });
+    });
+
+    matchedHistory.forEach(cmd => {
+      list.push({
+        title: `🕒 adb ${cmd}`,
+        description: "历史命令 - 点击直接运行",
+        type: "run_saved",
+        command: cmd
+      });
+    });
+
+    callbackSetList(list);
+  } else {
+    const list = [];
+
+    favorites.forEach(cmd => {
+      list.push({
+        title: `★ adb ${cmd}`,
+        description: "⭐ 收藏的命令 - 点击直接运行",
+        type: "run_saved",
+        command: cmd
+      });
+    });
+
+    history.forEach(cmd => {
+      list.push({
+        title: `🕒 adb ${cmd}`,
+        description: "历史命令 - 点击直接运行",
+        type: "run_saved",
+        command: cmd
+      });
+    });
+
+    if (list.length === 0) {
+      list.push({
+        title: "暂无历史或收藏命令",
+        description: "请在输入框中输入命令（如 shell am start -n ...）后执行",
+        type: "tip"
+      });
+    } else {
+      list.push({
+        title: "⚙️ 清空所有历史命令",
+        description: "清除所有历史记录",
+        type: "clear_history"
+      });
+      if (favorites.length > 0 || history.length > 0) {
+        list.push({
+          title: "⚙️ 管理收藏与历史 (点击收藏历史/取消收藏)",
+          description: "进入管理模式，从历史命令中添加收藏，或取消已有收藏",
+          type: "manage_favorites"
+        });
+      }
+    }
+
+    callbackSetList(list);
+  }
+};
+
+function executeAdbLaunchCommand(cmd) {
+  runAdbCommand(
+    `执行 adb ${cmd} 中`,
+    cmd,
+    (res) => {
+      const [stdout, deviceInfo] = res;
+      console.log(`执行成功: ${stdout}`);
+      const summary = stdout.trim() ? stdout.trim().substring(0, 100) : "执行成功，无输出";
+      window.showMsg(summary, false, true);
+    },
+    (error) => {
+      const [errorInfo, deviceInfo] = error;
+      console.error(`执行失败:`, errorInfo);
+      const lastLine = errorInfo && errorInfo.message 
+        ? errorInfo.message.trim().split("\n").pop() 
+        : "未知错误";
+      window.showMsg(`执行失败: ${lastLine}`, false, true);
+    }
+  );
+}
+
+exports.adbLaunchEnter = async (action, callbackSetList) => {
+  mCallbackSetList = callbackSetList;
+  mLaunchMode = "normal";
+  const downloadRes = await downloadConfig();
+  if (!downloadRes) return;
+  const adbRes = await adbConfig();
+  if (!adbRes) return;
+
+  if (action.type === "regex" && action.payload) {
+    let cleanCmd = action.payload.trim();
+    const isUrl = /^https?:\/\//i.test(cleanCmd);
+    if (isUrl) {
+      cleanCmd = `shell am start -a android.intent.action.VIEW -d "${cleanCmd}"`;
+    } else if (cleanCmd.toLowerCase().startsWith("adb ")) {
+      cleanCmd = cleanCmd.substring(4).trim();
+    }
+    addHistoryItem(cleanCmd);
+    renderAdbLaunchList("", callbackSetList);
+    executeAdbLaunchCommand(cleanCmd);
+    return;
+  }
+
+  renderAdbLaunchList("", callbackSetList);
+};
+
+exports.adbLaunchSearch = (action, searchWord, callbackSetList) => {
+  mCallbackSetList = callbackSetList;
+  renderAdbLaunchList(searchWord, callbackSetList);
+};
+
+exports.adbLaunchSelect = (action, itemData) => {
+  const type = itemData.type;
+  const cmd = itemData.command;
+
+  if (type === "tip") {
+    return;
+  }
+
+  if (type === "adb") {
+    mCallbackSetList([]);
+    runAdbCommand(
+      itemData.text,
+      itemData.command,
+      itemData.onSuccess,
+      itemData.onError,
+      itemData.description
+    );
+    return;
+  }
+
+  if (type === "back") {
+    mLaunchMode = "normal";
+    renderAdbLaunchList("", mCallbackSetList);
+    return;
+  }
+
+  if (type === "manage_favorites") {
+    mLaunchMode = "manage";
+    renderAdbLaunchList("", mCallbackSetList);
+    return;
+  }
+
+  if (type === "clear_history") {
+    saveHistory([]);
+    window.showMsg("历史命令已清空", false, true);
+    renderAdbLaunchList("", mCallbackSetList);
+    return;
+  }
+
+  if (type === "unfavorite") {
+    let favorites = getFavorites();
+    favorites = favorites.filter(f => f !== cmd);
+    saveFavorites(favorites);
+    window.showMsg("取消收藏成功", false, true);
+    renderAdbLaunchList("", mCallbackSetList);
+    return;
+  }
+
+  if (type === "favorite_history") {
+    addFavoriteItem(cmd);
+    window.showMsg("加入收藏成功", false, true);
+    renderAdbLaunchList("", mCallbackSetList);
+    return;
+  }
+
+  if (type === "run_saved") {
+    addHistoryItem(cmd);
+    executeAdbLaunchCommand(cmd);
+  }
+
+  if (type === "run_custom") {
+    addHistoryItem(cmd);
+    executeAdbLaunchCommand(cmd);
+  }
+
+  if (type === "favorite_run_custom") {
+    addFavoriteItem(cmd);
+    addHistoryItem(cmd);
+    executeAdbLaunchCommand(cmd);
+  }
+};
+
