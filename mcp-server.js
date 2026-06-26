@@ -1,4 +1,4 @@
-﻿const { execFile } = require("child_process");
+const { execFile } = require("child_process");
 
 const SERVER_NAME = "android-tool-mcp";
 const SERVER_VERSION = "1.0.0";
@@ -119,7 +119,7 @@ const handlers = {
 
     switch (name) {
       case "adb_devices": {
-        const out = await runAdb([]);
+        const out = await runAdb(["devices", "-l"]);
         return textResult(out.stdout || "");
       }
       case "adb_install": {

@@ -301,7 +301,7 @@ if (typeof utools !== 'undefined' && utools.registerTool) {
   };
 
   utools.registerTool('adb_devices', async () => {
-    const out = await runAdbLocal([]);
+    const out = await runAdbLocal(["devices", "-l"]);
     return { result: out.stdout || "" };
   });
 
