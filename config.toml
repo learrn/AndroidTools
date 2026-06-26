@@ -1,0 +1,31 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+[projects.'\\?\J:\jsproject\AndroidTool']
+trust_level = "trusted"
+
+[projects.'J:\aiproject']
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+
+[windows]
+sandbox = "elevated"
+
+[features]
+multi_agent = true
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[permissions]
+# 默认沙盒模式
+default_sandbox = "workspace-write"
+# 审批策略
+approval_mode = "on-request"
+# 自动批准安全操作
+auto_approve_safe_operations = true
+# 操作超时时间
+operation_timeout = 300

@@ -1,0 +1,76 @@
+{
+    "$schema":  "https://www.raycast.com/schemas/extension.json",
+    "name":  "android-tool",
+    "version":  "1.0.0",
+    "title":  "Android Tool",
+    "description":  "ADB helpers for install, shell, proxy and screenshots",
+    "icon":  "icon.png",
+    "license":  "MIT",
+    "categories":  [
+                       "Developer Tools"
+                   ],
+    "commands":  [
+                     {
+                         "name":  "devices",
+                         "title":  "ADB Devices",
+                         "description":  "List connected Android devices",
+                         "mode":  "view"
+                     },
+                     {
+                         "name":  "install-apk",
+                         "title":  "Install APK",
+                         "description":  "Install local APK to connected device",
+                         "mode":  "view"
+                     },
+                     {
+                         "name":  "adb-shell",
+                         "title":  "ADB Shell",
+                         "description":  "Run adb shell command",
+                         "mode":  "view"
+                     },
+                     {
+                         "name":  "set-proxy",
+                         "title":  "Set Device Proxy",
+                         "description":  "Set global HTTP proxy on device",
+                         "mode":  "view"
+                     },
+                     {
+                         "name":  "clear-proxy",
+                         "title":  "Clear Device Proxy",
+                         "description":  "Clear global HTTP proxy on device",
+                         "mode":  "view"
+                     },
+                     {
+                         "name":  "screenshot",
+                         "title":  "Device Screenshot",
+                         "description":  "Capture screenshot from Android device",
+                         "mode":  "view"
+                     }
+                 ],
+    "preferences":  [
+                        {
+                            "name":  "adbPath",
+                            "title":  "ADB Path",
+                            "description":  "Path to adb executable",
+                            "type":  "textfield",
+                            "required":  false,
+                            "default":  "adb"
+                        }
+                    ],
+    "scripts":  {
+                    "dev":  "ray develop",
+                    "build":  "ray build",
+                    "lint":  "ray lint",
+                    "fix-lint":  "ray lint --fix"
+                },
+    "dependencies":  {
+                         "@raycast/api":  "^1.100.0",
+                         "@raycast/utils":  "^1.18.0"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^24.0.0",
+                            "@types/react":  "^19.0.0",
+                            "typescript":  "^5.9.0"
+                        },
+    "author":  "thomas"
+}

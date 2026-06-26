@@ -14,6 +14,7 @@ AndroidTools is a uTools plugin project for common Android ADB operations, with 
   - `start-mcp-service`
   - `stop-mcp-service`
   - `mcp-service-status`
+- Native Raycast extension (in `raycast/`) for common ADB workflows.
 
 ## Project Structure
 
@@ -22,6 +23,7 @@ AndroidTools is a uTools plugin project for common Android ADB operations, with 
 - `mcp-server.js`: MCP stdio server that exposes ADB tools.
 - `plugin.json`: uTools plugin metadata and command definitions.
 - `MCP_USAGE.md`: MCP usage examples.
+- `raycast/`: standalone Raycast extension project.
 
 ## Requirements
 
@@ -56,6 +58,27 @@ Optional environment variable:
 - `adb_raw`
 
 See `MCP_USAGE.md` for call examples.
+
+## Raycast Support
+
+Raycast extension files are under `raycast/`.
+
+Setup:
+
+```bash
+cd raycast
+npm install
+npm run dev
+```
+
+Available commands:
+
+- `ADB Devices`
+- `Install APK`
+- `ADB Shell`
+- `Set Device Proxy`
+- `Clear Device Proxy`
+- `Device Screenshot`
 
 ## Security Notes
 

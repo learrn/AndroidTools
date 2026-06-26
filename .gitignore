@@ -7,6 +7,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
+node_modules/
+raycast/node_modules/
 
 # OS/editor temporary files
 .DS_Store
