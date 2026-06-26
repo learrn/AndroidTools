@@ -258,10 +258,109 @@ window.createWriteStream = (savePath) => {
   return fs.createWriteStream(savePath);
 };
 
-window.shellShowItemInFolder = (path) => {
-  utools.shellShowItemInFolder(`${path}`);
-};
 
-window.outPlugin = (path) => {
-  utools.outPlugin();
-};
+
+if (typeof utools !== 'undefined' && utools.registerTool) {
+  const runAdbLocal = (args) => {
+    const adb = window.getDBItem("adbPath") || "adb";
+    return new Promise((resolve, reject) => {
+      child_process.execFile(adb, args, { windowsHide: true, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        if (error) {
+          const err = new Error((stderr || error.message || "adb failed").trim());
+          err.code = error.code;
+          reject(err);
+          return;
+        }
+        resolve({ stdout, stderr });
+      });
+    });
+  };
+
+  const withDevice = (device, args) => {
+    if (device && typeof device === "string") {
+      return ["-s", device, ...args];
+    }
+    return args;
+  };
+
+  const resolveShellArgs = (args) => {
+    if (Array.isArray(args.args) && args.args.length > 0) {
+      return args.args.map(String);
+    }
+    if (typeof args.command === "string" && args.command.trim()) {
+      const out = [];
+      const re = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|\S+/g;
+      let m;
+      while ((m = re.exec(args.command))) {
+        const token = m[1] ?? m[2] ?? m[0];
+        out.push(token.replace(/\\(["'\\])/g, "$1"));
+      }
+      return out;
+    }
+    throw new Error("adb_shell requires either command or args");
+  };
+
+  utools.registerTool('adb_devices', async () => {
+    const out = await runAdbLocal([]);
+    return { result: out.stdout || "" };
+  });
+
+  utools.registerTool('adb_install', async (args) => {
+    if (typeof args.apkPath !== 'string' || !args.apkPath.trim()) {
+      throw new Error("apkPath must be a non-empty string");
+    }
+    const out = await runAdbLocal(withDevice(args.device, ["install", "-t", "-d", "-r", args.apkPath]));
+    return { result: out.stdout || "" };
+  });
+
+  utools.registerTool('adb_shell', async (args) => {
+    const shellArgs = resolveShellArgs(args);
+    const out = await runAdbLocal(withDevice(args.device, ["shell", ...shellArgs]));
+    return { result: out.stdout || "" };
+  });
+
+  utools.registerTool('adb_set_proxy', async (args) => {
+    if (typeof args.host !== 'string' || !args.host.trim()) {
+      throw new Error("host must be a non-empty string");
+    }
+    if (typeof args.port !== 'number') {
+      throw new Error("port must be a number");
+    }
+    const proxy = `${args.host}:${args.port}`;
+    const out = await runAdbLocal(withDevice(args.device, ["shell", "settings", "put", "global", "http_proxy", proxy]));
+    return { result: out.stdout || "OK" };
+  });
+
+  utools.registerTool('adb_clear_proxy', async (args) => {
+    const cmds = [
+      ["shell", "settings", "put", "global", "http_proxy", ":0"],
+      ["shell", "settings", "delete", "global", "http_proxy"],
+      ["shell", "settings", "delete", "global", "global_http_proxy_host"],
+      ["shell", "settings", "delete", "global", "global_http_proxy_port"],
+    ];
+    const outputs = [];
+    for (const cmd of cmds) {
+      const out = await runAdbLocal(withDevice(args.device, cmd));
+      if (out.stdout) outputs.push(out.stdout.trim());
+    }
+    return { result: outputs.filter(Boolean).join("\n") || "OK" };
+  });
+
+  utools.registerTool('adb_screenshot', async (args) => {
+    if (typeof args.localPath !== 'string' || !args.localPath.trim()) {
+      throw new Error("localPath must be a non-empty string");
+    }
+    const remotePath = args.remotePath || "/sdcard/screen.png";
+    await runAdbLocal(withDevice(args.device, ["shell", "screencap", remotePath]));
+    const out = await runAdbLocal(withDevice(args.device, ["pull", remotePath, args.localPath]));
+    return { result: out.stdout || `Saved to ${args.localPath}` };
+  });
+
+  utools.registerTool('adb_raw', async (args) => {
+    if (!Array.isArray(args.args) || args.args.length === 0) {
+      throw new Error("args must be a non-empty string array");
+    }
+    const out = await runAdbLocal(args.args);
+    return { result: out.stdout || "" };
+  });
+}

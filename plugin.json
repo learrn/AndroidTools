@@ -93,5 +93,86 @@
                 }
             ]
         }
-    ]
+    ],
+    "tools": {
+        "adb_devices": {
+            "description": "List connected Android devices with details (adb devices -l).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }
+        },
+        "adb_install": {
+            "description": "Install an APK with -t -d -r flags.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "apkPath": { "type": "string", "description": "Absolute path to APK file." },
+                    "device": { "type": "string", "description": "Optional adb serial from adb devices." }
+                },
+                "required": ["apkPath"],
+                "additionalProperties": false
+            }
+        },
+        "adb_shell": {
+            "description": "Run adb shell command on a device.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "command": { "type": "string", "description": "Shell command string, e.g. pm list packages" },
+                    "args": { "type": "array", "items": { "type": "string" }, "description": "Alternative to command string." },
+                    "device": { "type": "string", "description": "Optional adb serial from adb devices." }
+                },
+                "additionalProperties": false
+            }
+        },
+        "adb_set_proxy": {
+            "description": "Set global HTTP proxy on device.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host": { "type": "string", "description": "Proxy host, e.g. 192.168.1.10" },
+                    "port": { "type": "integer", "description": "Proxy port, e.g. 8999" },
+                    "device": { "type": "string", "description": "Optional adb serial from adb devices." }
+                },
+                "required": ["host", "port"],
+                "additionalProperties": false
+            }
+        },
+        "adb_clear_proxy": {
+            "description": "Clear global HTTP proxy on device.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "device": { "type": "string", "description": "Optional adb serial from adb devices." }
+                },
+                "additionalProperties": false
+            }
+        },
+        "adb_screenshot": {
+            "description": "Capture screenshot and pull it to local path.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "localPath": { "type": "string", "description": "Absolute local path, e.g. C:/tmp/screen.png" },
+                    "remotePath": { "type": "string", "description": "Device path. Default: /sdcard/screen.png" },
+                    "device": { "type": "string", "description": "Optional adb serial from adb devices." }
+                },
+                "required": ["localPath"],
+                "additionalProperties": false
+            }
+        },
+        "adb_raw": {
+            "description": "Run raw adb args for advanced use cases.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "args": { "type": "array", "items": { "type": "string" }, "description": "Raw adb args array." }
+                },
+                "required": ["args"],
+                "additionalProperties": false
+            }
+        }
+    }
 }
